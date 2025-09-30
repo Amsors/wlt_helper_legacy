@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using System.Net.Http;
+using wlt_helper.Utilities;
 
 namespace wlt_helper.Services
 {
@@ -34,17 +35,17 @@ namespace wlt_helper.Services
             }
             catch (TaskCanceledException)
             {
-                Debug.WriteLine($"访问 {url} 超时（3秒内未响应）");
+                TbxLogger.LogWrite($"访问 {url} 超时（3秒内未响应）");
                 return false;
             }
             catch (HttpRequestException ex)
             {
-                Debug.WriteLine($"访问 {url} 时发生网络错误：{ex.Message}");
+                TbxLogger.LogWrite($"访问 {url} 时发生网络错误：{ex.Message}");
                 return false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"访问 {url} 时发生未知错误：{ex.Message}");
+                TbxLogger.LogWrite($"访问 {url} 时发生未知错误：{ex.Message}");
                 return false;
             }
         }
@@ -52,23 +53,25 @@ namespace wlt_helper.Services
         {
             try
             {
-                // 将字典数据转换为application/x-www-form-urlencoded格式
                 var formContent = new FormUrlEncodedContent(formData);
-                // 设置请求头
                 formContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
-                // 发送POST请求
+
                 HttpResponseMessage response = await _httpClient.PostAsync(url, formContent);
-                // 确保响应成功
                 response.EnsureSuccessStatusCode();
 
                 var customEncoding = System.Text.CodePagesEncodingProvider.Instance.GetEncoding(charSet);
                 byte[] responseBytes = await response.Content.ReadAsByteArrayAsync();
                 if(customEncoding == null)
                 {
-                    Debug.WriteLine($"{charSet} Encode is unavailable");
+                    TbxLogger.LogWrite($"所选字符集{charSet}不可用");
                     return "N/A";
                 }
                 string responseString = customEncoding.GetString(responseBytes);
+                if (responseString == null)
+                {
+                    TbxLogger.LogWrite($"返回响应字符串为空");
+                    return "N/A";
+                }
 
                 return responseString;
             }
@@ -98,7 +101,7 @@ namespace wlt_helper.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Ping操作发生异常: {ex.Message}");
+                TbxLogger.LogWrite($"Ping操作发生异常: {ex.Message}");
                 return false;
             }
         }
@@ -109,6 +112,7 @@ namespace wlt_helper.Services
             (string user, string pwd) = DataStorage.GetUserPwd();
             if(user == null || pwd == null)
             {
+                TbxLogger.LogWrite("用户名或密码为空，网络通登录失败");
                 return;
             }
             var formData = new Dictionary<string, string>
@@ -123,21 +127,19 @@ namespace wlt_helper.Services
             try
             {
                 string response = await PostFormAsync(url, formData, "GB2312");
-                Debug.WriteLine($"POST请求响应：{response}");
                 if (response.Contains("网络设置成功"))
                 {
-                    Debug.WriteLine("登录成功");
+                    TbxLogger.LogWrite("登录成功");
                 }
                 else
                 {
-                    //mainform.OutputToStatusBox(" 失败");
+                    TbxLogger.LogWrite("登录失败 网页返回内容无法解析");
                 }
 
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"POST请求失败：{ex.Message}");
-                Debug.WriteLine("登录失败");
+                TbxLogger.LogWrite($"登录失败 {ex.Message}");
             }
         }
 
@@ -162,7 +164,8 @@ namespace wlt_helper.Services
                 if (disposing)
                 {
                     _httpClient?.Dispose();
-                    Debug.WriteLine("托管资源（HttpClient）已释放。");
+                    
+                    DebugLogger.LogWrite("HttpClient 已释放");
                 }
                 _disposed = true;
             }

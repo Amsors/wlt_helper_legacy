@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Text.Json;
 using System.Windows.Forms;
+using Microsoft.Extensions.Logging;
+using wlt_helper.Utilities;
 
 namespace wlt_helper_legacy
 {
@@ -16,8 +18,9 @@ namespace wlt_helper_legacy
             InitializeComponent();
             ConfigInitialize();
             MainFormInitialize();
-            NotifyIconInitialize();
+            NotifyIconInitialize(); 
             LaunchCronJobs();
+            TbxLogger.Initialize(this.txt_StatusBox);
         }
 
         private void ConfigInitialize()
@@ -72,7 +75,6 @@ namespace wlt_helper_legacy
 
             this.FormClosing += MainForm_FormClosing;
             this.Load += MainForm_Load;
-            //this.Shown += MainForm_Hide;
         }
 
         private void NotifyIconInitialize()
@@ -92,10 +94,10 @@ namespace wlt_helper_legacy
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            Debug.WriteLine($"hide on launch is {wlt_helper.Services.UserConfig.HideOnLaunch}");
+            TbxLogger.LogWrite("应用启动");
             if (wlt_helper.Services.UserConfig.HideOnLaunch)
             {
-                //Debug.Assert(false);
+                TbxLogger.LogWrite("窗口隐藏");
                 this.WindowState = FormWindowState.Minimized;
                 this.ShowInTaskbar = false;
                 this.isMainFormVisible = false;
@@ -108,8 +110,11 @@ namespace wlt_helper_legacy
                 {
                     txt_UserName.Text = parts[0];
                     txt_Password.Text = parts[1];
+                    TbxLogger.LogWrite("读取并加载用户名与密码成功");
+                    return;
                 }
             }
+            TbxLogger.LogWrite("读取并加载用户名与密码失败");
 
             //string ssid = WltWebFunction.GetCurrentConnection();
             //if (ssid != null)
@@ -122,6 +127,7 @@ namespace wlt_helper_legacy
         {
             if (e.CloseReason == CloseReason.UserClosing)
             {
+                TbxLogger.LogWrite("窗口关闭");
                 e.Cancel = true;
                 this.isMainFormVisible = false;
                 this.Hide();
@@ -131,6 +137,7 @@ namespace wlt_helper_legacy
         private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             if (this.isMainFormVisible) return;
+            TbxLogger.LogWrite("窗口出现");
             this.Show();
             this.WindowState = FormWindowState.Normal;
             this.ShowInTaskbar = true;
@@ -144,12 +151,23 @@ namespace wlt_helper_legacy
 
             if (string.IsNullOrEmpty(userInput) || string.IsNullOrEmpty(pwdInput))
             {
+                TbxLogger.LogWrite("用户名和密码输入无效");
                 MessageBox.Show("请检查输入内容！");
             }
             else
             {
-                wlt_helper.Services.DataStorage.SaveCredentials(userInput, pwdInput);
-                MessageBox.Show($"已保存");
+                TbxLogger.LogWrite("用户名和密码输入成功");
+                bool success = wlt_helper.Services.DataStorage.SaveCredentials(userInput, pwdInput);
+                if (success)
+                {
+                    TbxLogger.LogWrite("用户名和密码保存成功");
+                    MessageBox.Show($"已保存");
+                }
+                else
+                {
+                    TbxLogger.LogWrite("用户名和密码保存失败");
+                    MessageBox.Show($"保存失败");
+                }
             }
         }
 
@@ -169,96 +187,41 @@ namespace wlt_helper_legacy
             }
         }
 
-        private void txt_UserName_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void txt_Password_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
         private async void btn_TestURL_Click(object sender, EventArgs e)
         {
             using (var webFunction = new wlt_helper.Services.WltWebFunction())
             {
-                string testUrl = "https://www.baidu.com";
+                string testUrl = wlt_helper.Services.AppConfig.url_DefaultConnectTest;
                 bool isAccessible = await webFunction.TestWebsiteAccessAsync(testUrl);
-                string content = $"网站 {testUrl} 可访问性：{(isAccessible ? "可访问" : "不可访问")}";
-                OutputToStatusBox(content);
+                string content = $"网站 {testUrl} {(isAccessible ? "可访问" : "不可访问")}";
+                TbxLogger.LogWrite(content);
             }
         }
-
-        public void OutputToStatusBox(string str, bool newline = true)
-        {
-            if (newline)
-            {
-                txt_StatusBox.AppendText(str + Environment.NewLine);
-            }
-            else
-            {
-                txt_StatusBox.AppendText(str);
-            }
-            txt_StatusBox.ScrollToCaret();
-        }
-
-        //public (string? firstName, string? lastName) GetUserPwd()
-        //{
-        //    return (txt_UserName.Text, txt_Password.Text);
-        //}
 
         private async void btn_Login_Click(object sender, EventArgs e)
         {
             using (var webFunction = new wlt_helper.Services.WltWebFunction())
             {
-                OutputToStatusBox("尝试登录到网络通", false);
                 await webFunction.LoginToWlt();
             }
         }
 
         private void ckb_LaunchOnBoot_CheckedChanged(object sender, EventArgs e)
         {
-            Debug.WriteLine($"now is {ckb_LaunchOnBoot.Checked}");
-            Debug.WriteLine("正在更改开机自启动");
             wlt_helper.Services.UserConfig.LaunchOnBoot = ckb_LaunchOnBoot.Checked;
-            if (ckb_LaunchOnBoot.Checked)
-            {
-                wlt_helper.Services.UserConfig.LaunchOnBoot = true;
-                if (wlt_helper.Services.AppSettings.SetAutoStart())
-                {
-                    Debug.WriteLine("成功");
-                }
-                else
-                {
-                    Debug.WriteLine("失败");
-                    Debug.WriteLine($"请检查" +
-                        @"C:\Users\[你的用户名称]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup" +
-                        "并手动删除APP快捷方式");
-                }
-            }
-            else
-            {
-                wlt_helper.Services.UserConfig.HideOnLaunch = false;
-                if (wlt_helper.Services.AppSettings.SetAutoStart())
-                {
-                    Debug.WriteLine("成功");
-                }
-                else
-                {
-                    Debug.WriteLine("失败");
-                }
-            }
+            wlt_helper.Services.AppSettings.SetAutoStart();
         }
 
         private void btn_ExitApp_Click(object sender, EventArgs e)
         {
             this.notifyIcon.Dispose();
+            TbxLogger.Shutdown();
             Application.Exit();
         }
 
         private void ckb_HideOnLaunch_CheckedChanged(object sender, EventArgs e)
         {
+            TbxLogger.LogWrite($"设定启动后自动隐藏到托盘为{ckb_HideOnLaunch.Checked}");
             if (ckb_HideOnLaunch.Checked)
             {
                 wlt_helper.Services.UserConfig.HideOnLaunch = true;

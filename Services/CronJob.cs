@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
+using wlt_helper.Utilities;
 
 namespace wlt_helper.Services
 {
@@ -17,30 +13,25 @@ namespace wlt_helper.Services
     }
     internal class CronJob
     {
-        public  async void ConnectToWlt(object state)
+        public async void ConnectToWlt(object state)
         {
-            //string ssid = WltWebFunction.GetCurrentConnection();
-            //if (WltWebFunction.NeedToLogin(ssid) == false)
-            //{
-            //    Debug.WriteLine("无需登录，SSID不匹配");
-            //    return;
-            //}
             bool pingAvailable = await WltWebFunction.PingWebsiteAsync(AppConfig.url_WltHost);
             if (pingAvailable == false)
             {
-                Debug.WriteLine("非校园网");
+                TbxLogger.LogWrite("检测到非校园网 不进行登录");
                 return;
             }
             bool isAccessible;
             using (var webFunction = new WltWebFunction())
             {
-                string testUrl = AppConfig.url_MSConnectTest;
+                string testUrl = AppConfig.url_DefaultConnectTest;
                 isAccessible = await webFunction.TestWebsiteAccessAsync(testUrl);
-                string content = $"网站 {testUrl} 可访问性：{(isAccessible ? "可访问" : "不可访问")}";
+                string content = $"网站 {testUrl} {(isAccessible ? "可访问" : "不可访问")}";
+                TbxLogger.LogWrite(content);
             }
             if (isAccessible == false)
             {
-                Debug.WriteLine("连接不通，需登录");
+                TbxLogger.LogWrite($"判定为网络连接不通，需登录");
                 using (var webFunction = new WltWebFunction())
                 {
                     await webFunction.LoginToWlt();
@@ -48,7 +39,7 @@ namespace wlt_helper.Services
             }
             else
             {
-                Debug.WriteLine("连接通，不需登录");
+                TbxLogger.LogWrite($"判定为网络可以连接通，不需登录");
                 WltWebFunction.isLogined = true;
             }
         }

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Text.Json;
 using IWshRuntimeLibrary;
+using wlt_helper.Utilities;
 
 namespace wlt_helper.Services
 {
@@ -15,13 +17,14 @@ namespace wlt_helper.Services
         {
             if (UserConfig.LaunchOnBoot)
             {
-                EnableAutoStart();
+                TbxLogger.LogWrite("尝试启用开机自启动");
+                return EnableAutoStart();
             }
             else
             {
-                DisableAutoStart();
+                TbxLogger.LogWrite("尝试禁用开机自启动");
+                return DisableAutoStart();
             }
-            return true;
         }
 
         private static bool EnableAutoStart(string shortcutName = "MyApp", string description = "Default")
@@ -29,14 +32,12 @@ namespace wlt_helper.Services
             try
             {
                 string startupPath = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
-                Debug.WriteLine(startupPath);
+                DebugLogger.LogWrite($"{shortcutName}: {startupPath}");
                 string shortcutPath = System.IO.Path.Combine(startupPath, $"{shortcutName}.lnk");
-                //string appPath = Process.GetCurrentProcess().MainModule.FileName;
-                //string appPath = Environment.ProcessPath;
                 string appPath = System.Reflection.Assembly.GetEntryAssembly().Location;
-                if (appPath == null)
+                if (appPath == null || shortcutPath == null)
                 {
-                    Debug.WriteLine("Error");
+                    TbxLogger.LogWrite("启用开机自启动，错误 应用程序或快捷方式路径错误");
                     return false;
                 }
 
@@ -46,13 +47,15 @@ namespace wlt_helper.Services
                 shortcut.TargetPath = appPath;
                 shortcut.WorkingDirectory = System.IO.Path.GetDirectoryName(appPath);
                 shortcut.Description = description;
-                //shortcut.IconLocation = "icon.ico, 0";
+                //shortcut.IconLocation = "icon.ico, 0"; // TODO 添加shortcut图标
 
                 shortcut.Save();
+                TbxLogger.LogWrite("启用开机自启动成功");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                TbxLogger.LogWrite($"启用开机自启动失败，错误 {ex.Message}");
                 return false;
             }
         }
@@ -62,14 +65,12 @@ namespace wlt_helper.Services
             try
             {
                 string startupPath = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
-                Debug.WriteLine(startupPath);
+                DebugLogger.LogWrite($"{shortcutName}: {startupPath}");
                 string shortcutPath = System.IO.Path.Combine(startupPath, $"{shortcutName}.lnk");
-                //string appPath = Process.GetCurrentProcess().MainModule.FileName;
-                //string appPath = Environment.ProcessPath;
                 string appPath = System.Reflection.Assembly.GetEntryAssembly().Location;
-                if (appPath == null)
+                if(appPath == null || shortcutPath == null)
                 {
-                    Debug.WriteLine("Error");
+                    TbxLogger.LogWrite("禁用开机自启动，错误 应用程序或快捷方式路径错误");
                     return false;
                 }
 
@@ -77,16 +78,28 @@ namespace wlt_helper.Services
                 {
                     System.IO.File.Delete(shortcutPath);
                 }
+                else
+                {
+                    TbxLogger.LogWrite("禁用开机自启动，错误 应用程序快捷方式不存在");
+                    return false;
+                }
+                TbxLogger.LogWrite("启用开机自启动成功");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                TbxLogger.LogWrite($"禁用开机自启动失败，错误 {ex.Message}");
                 return false;
             }
         }
 
         public static byte[] GetIconBytes()
         {
+            var icon = wlt_helper_legacy.Properties.Resources.icon_1_16x16;
+            if( icon == null)
+            {
+                TbxLogger.LogWrite("图标文件读取失败");
+            }
             return wlt_helper_legacy.Properties.Resources.icon_1_16x16;
         }
 
@@ -113,22 +126,32 @@ namespace wlt_helper.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"发生错误：{ex.Message}");
+                TbxLogger.LogWrite($"写入配置文件发生错误：{ex.Message}");
             }
         }
 
         public static string ReadConfigFile()
         {
-            string confJson = System.IO.File.ReadAllText(AppConfig.path_Config);
-            return confJson;
+            try
+            {
+                string confJson = System.IO.File.ReadAllText(AppConfig.path_Config);
+                return confJson;
+            }
+            catch (Exception ex)
+            {
+                TbxLogger.LogWrite($"读取配置文件发生错误：{ex.Message}");
+            }
+            return string.Empty;
         }
     }
 
     public static class AppConfig
     {
         public static readonly string path_Config = @"wlt_helper_config.json";
+        public static readonly string url_DefaultConnectTest = @"http://cn.bing.com";
         public static readonly string url_MSConnectTest = @"http://www.msftconnecttest.com/connecttest.txt";
         public static readonly string url_BaiduConnectTest = @"http://baidu.com";
+        public static readonly string url_BingConnectTest = @"http://cn.bing.com";
         public static readonly string url_WltLogin = @"http://wlt.ustc.edu.cn/cgi-bin/ip";
         public static readonly string url_WltHost = @"wlt.ustc.edu.cn";
         public static readonly string SSID_Target = "ustcnet";
@@ -171,12 +194,18 @@ namespace wlt_helper.Services
                 _hideOnLaunch,
                 _launchOnBoot
             };
-            string plainJson = JsonSerializer.Serialize(data);
-            string formattedJson = JsonSerializer.Serialize(
-            JsonSerializer.Deserialize<object>(plainJson),
-            new JsonSerializerOptions { WriteIndented = true }
-        );
-            return formattedJson;
+            try
+            {
+                string plainJson = JsonSerializer.Serialize(data);
+                string formattedJson = JsonSerializer.Serialize(
+                JsonSerializer.Deserialize<object>(plainJson), new JsonSerializerOptions { WriteIndented = true });
+                return formattedJson;
+            }
+            catch (Exception ex)
+            {
+                TbxLogger.LogWrite($"Json转字符串错误：{ex.Message}");
+                return string.Empty;
+            }
         }
     }
 }
