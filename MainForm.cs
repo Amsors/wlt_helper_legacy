@@ -1,0 +1,272 @@
+﻿using System;
+using System.Diagnostics;
+using System.Drawing;
+using System.Text.Json;
+using System.Windows.Forms;
+
+namespace wlt_helper_legacy
+{
+    public partial class MainForm : Form
+    {
+        private bool isPasswordVisible = false;
+        private bool isMainFormVisible = true;
+
+        public MainForm()
+        {
+            InitializeComponent();
+            ConfigInitialize();
+            MainFormInitialize();
+            NotifyIconInitialize();
+            LaunchCronJobs();
+        }
+
+        private void ConfigInitialize()
+        {
+            if (wlt_helper.Services.AppSettings.ExistConfigFile() == false)
+            {
+                wlt_helper.Services.UserConfig.LaunchOnBoot = false;
+                wlt_helper.Services.UserConfig.HideOnLaunch = false;
+
+                wlt_helper.Services.AppSettings.SetConfigFile();
+            }
+            else
+            {
+                string conf = wlt_helper.Services.AppSettings.ReadConfigFile();
+                using (JsonDocument document = JsonDocument.Parse(conf))
+                {
+                    JsonElement root = document.RootElement;
+
+                    bool launchOnBoot = root.GetProperty("_launchOnBoot").GetBoolean();
+                    bool hideOnLaunch = root.GetProperty("_hideOnLaunch").GetBoolean();
+
+                    wlt_helper.Services.UserConfig.LaunchOnBoot = launchOnBoot;
+                    wlt_helper.Services.UserConfig.HideOnLaunch = hideOnLaunch;
+
+                    ckb_LaunchOnBoot.Checked = launchOnBoot;
+                    wlt_helper.Services.AppSettings.SetAutoStart();
+
+                    ckb_HideOnLaunch.Checked = hideOnLaunch;
+                }
+            }
+        }
+
+        private void MainFormInitialize()
+        {
+            byte[] iconBytes = wlt_helper.Services.AppSettings.GetIconBytes();
+            Icon myIcon = wlt_helper.Services.AppSettings.BytesToIcon(iconBytes);
+            this.Icon = myIcon;
+            this.Text = "wlt_helper";
+            btn_Submit.Text = "确认";
+            btn_TogglePassword.Text = "显示密码";
+            txt_Password.PasswordChar = '*';
+            lbl_Password.Text = "密码";
+            lbl_UserName.Text = "用户名";
+            btn_TestURL.Text = "测试网络";
+            lbl_SSID.Text = "当前WLAN的SSID";
+            lbl_Title.Text = "网络通助手";
+            ckb_LaunchOnBoot.Text = "开机自启动";
+            btn_Login.Text = "尝试登录";
+            btn_ExitApp.Text = "退出程序";
+            ckb_HideOnLaunch.Text = "启动自动托盘";
+            txt_SSID.Text = "N/A"; //TODO 待删除
+
+            this.FormClosing += MainForm_FormClosing;
+            this.Load += MainForm_Load;
+            //this.Shown += MainForm_Hide;
+        }
+
+        private void NotifyIconInitialize()
+        {
+            byte[] iconBytes = wlt_helper.Services.AppSettings.GetIconBytes();
+            Icon myIcon = wlt_helper.Services.AppSettings.BytesToIcon(iconBytes);
+            this.notifyIcon.Icon = myIcon;
+            notifyIcon.Text = "wlt_helper";
+            notifyIcon.Visible = true;
+        }
+
+        private void LaunchCronJobs()
+        {
+            wlt_helper.Services.CronJob job1 = new wlt_helper.Services.CronJob();
+            wlt_helper.Services.TimerTask Task1 = new wlt_helper.Services.TimerTask(job1.ConnectToWlt, wlt_helper.Services.AppConfig.time_ScanNetworkAvaidability);
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            Debug.WriteLine($"hide on launch is {wlt_helper.Services.UserConfig.HideOnLaunch}");
+            if (wlt_helper.Services.UserConfig.HideOnLaunch)
+            {
+                //Debug.Assert(false);
+                this.WindowState = FormWindowState.Minimized;
+                this.ShowInTaskbar = false;
+                this.isMainFormVisible = false;
+            }
+            string user_pwd = wlt_helper.Services.DataStorage.LoadSavedCredentials();
+            if (user_pwd != null)
+            {
+                string[] parts = user_pwd.Split('|');
+                if (parts.Length == 2)
+                {
+                    txt_UserName.Text = parts[0];
+                    txt_Password.Text = parts[1];
+                }
+            }
+
+            //string ssid = WltWebFunction.GetCurrentConnection();
+            //if (ssid != null)
+            //{
+            //    txt_SSID.Text = ssid;
+            //}
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;
+                this.isMainFormVisible = false;
+                this.Hide();
+            }
+        }
+
+        private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            if (this.isMainFormVisible) return;
+            this.Show();
+            this.WindowState = FormWindowState.Normal;
+            this.ShowInTaskbar = true;
+            this.Activate();
+        }
+
+        private void btn_Submit_Click(object sender, EventArgs e)
+        {
+            string userInput = txt_UserName.Text;
+            string pwdInput = txt_Password.Text;
+
+            if (string.IsNullOrEmpty(userInput) || string.IsNullOrEmpty(pwdInput))
+            {
+                MessageBox.Show("请检查输入内容！");
+            }
+            else
+            {
+                wlt_helper.Services.DataStorage.SaveCredentials(userInput, pwdInput);
+                MessageBox.Show($"已保存");
+            }
+        }
+
+        private void btn_TogglePassword_Click(object sender, EventArgs e)
+        {
+            if (isPasswordVisible)
+            {
+                txt_Password.PasswordChar = '*';
+                btn_TogglePassword.Text = "显示密码";
+                isPasswordVisible = false;
+            }
+            else
+            {
+                txt_Password.PasswordChar = '\0';
+                btn_TogglePassword.Text = "隐藏密码";
+                isPasswordVisible = true;
+            }
+        }
+
+        private void txt_UserName_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txt_Password_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private async void btn_TestURL_Click(object sender, EventArgs e)
+        {
+            using (var webFunction = new wlt_helper.Services.WltWebFunction())
+            {
+                string testUrl = "https://www.baidu.com";
+                bool isAccessible = await webFunction.TestWebsiteAccessAsync(testUrl);
+                string content = $"网站 {testUrl} 可访问性：{(isAccessible ? "可访问" : "不可访问")}";
+                OutputToStatusBox(content);
+            }
+        }
+
+        public void OutputToStatusBox(string str, bool newline = true)
+        {
+            if (newline)
+            {
+                txt_StatusBox.AppendText(str + Environment.NewLine);
+            }
+            else
+            {
+                txt_StatusBox.AppendText(str);
+            }
+            txt_StatusBox.ScrollToCaret();
+        }
+
+        //public (string? firstName, string? lastName) GetUserPwd()
+        //{
+        //    return (txt_UserName.Text, txt_Password.Text);
+        //}
+
+        private async void btn_Login_Click(object sender, EventArgs e)
+        {
+            using (var webFunction = new wlt_helper.Services.WltWebFunction())
+            {
+                OutputToStatusBox("尝试登录到网络通", false);
+                await webFunction.LoginToWlt();
+            }
+        }
+
+        private void ckb_LaunchOnBoot_CheckedChanged(object sender, EventArgs e)
+        {
+            Debug.WriteLine($"now is {ckb_LaunchOnBoot.Checked}");
+            Debug.WriteLine("正在更改开机自启动");
+            wlt_helper.Services.UserConfig.LaunchOnBoot = ckb_LaunchOnBoot.Checked;
+            if (ckb_LaunchOnBoot.Checked)
+            {
+                wlt_helper.Services.UserConfig.LaunchOnBoot = true;
+                if (wlt_helper.Services.AppSettings.SetAutoStart())
+                {
+                    Debug.WriteLine("成功");
+                }
+                else
+                {
+                    Debug.WriteLine("失败");
+                    Debug.WriteLine($"请检查" +
+                        @"C:\Users\[你的用户名称]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup" +
+                        "并手动删除APP快捷方式");
+                }
+            }
+            else
+            {
+                wlt_helper.Services.UserConfig.HideOnLaunch = false;
+                if (wlt_helper.Services.AppSettings.SetAutoStart())
+                {
+                    Debug.WriteLine("成功");
+                }
+                else
+                {
+                    Debug.WriteLine("失败");
+                }
+            }
+        }
+
+        private void btn_ExitApp_Click(object sender, EventArgs e)
+        {
+            this.notifyIcon.Dispose();
+            Application.Exit();
+        }
+
+        private void ckb_HideOnLaunch_CheckedChanged(object sender, EventArgs e)
+        {
+            if (ckb_HideOnLaunch.Checked)
+            {
+                wlt_helper.Services.UserConfig.HideOnLaunch = true;
+            }
+            else
+            {
+                wlt_helper.Services.UserConfig.HideOnLaunch = false;
+            }
+        }
+    }
+}
