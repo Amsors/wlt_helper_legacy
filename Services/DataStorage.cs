@@ -7,7 +7,7 @@ namespace wlt_helper.Services
 {
     internal class DataStorage
     {
-        private static readonly byte[] s_additionalEntropy = Encoding.UTF8.GetBytes("asdasd");
+        private static readonly byte[] s_additionalEntropy = Encoding.UTF8.GetBytes("wlt_helper_legacy_amsors_CC9F8F27-3A8A-4643-8831-861B72C7771A");
         public static void SaveCredentials(string username, string password)
         {
             try

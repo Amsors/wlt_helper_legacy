@@ -86,26 +86,6 @@ namespace wlt_helper.Services
             }
         }
 
-        //public static string GetCurrentConnection()
-        //{
-        //    WlanClient client = new WlanClient();
-        //    try{
-        //        foreach (WlanClient.WlanInterface wlanIface in client.Interfaces)
-        //        {
-        //            if (wlanIface.InterfaceState == Wlan.WlanInterfaceState.Connected &&
-        //                wlanIface.CurrentConnection.isState == Wlan.WlanInterfaceState.Connected)
-        //            {
-        //                return wlanIface.CurrentConnection.profileName;
-        //            }
-        //        }
-        //        return string.Empty;
-        //    }
-        //    finally
-        //    {
-        //        //client.Dispose(); 
-        //    }
-        //}
-
         public static async Task<bool> PingWebsiteAsync(string url)
         {
             try
