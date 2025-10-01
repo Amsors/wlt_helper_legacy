@@ -46,11 +46,18 @@ namespace wlt_helper_legacy
             this.ckb_LaunchOnBoot = new System.Windows.Forms.CheckBox();
             this.btn_Login = new System.Windows.Forms.Button();
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
-            this.btn_ExitApp = new System.Windows.Forms.Button();
-            this.ckb_HideOnLaunch = new System.Windows.Forms.CheckBox();
             this.cms_notifyIcon = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.tsmi_Exit = new System.Windows.Forms.ToolStripMenuItem();
+            this.btn_ExitApp = new System.Windows.Forms.Button();
+            this.ckb_HideOnLaunch = new System.Windows.Forms.CheckBox();
             this.btn_Uninstall = new System.Windows.Forms.Button();
+            this.txt_InitialCheckMaxCnt = new System.Windows.Forms.TextBox();
+            this.txt_CheckInterval = new System.Windows.Forms.TextBox();
+            this.lbl_InitialCheckMaxCnt = new System.Windows.Forms.Label();
+            this.lbl_CheckInterval = new System.Windows.Forms.Label();
+            this.ckb_RepeatedCheck = new System.Windows.Forms.CheckBox();
+            this.btn_SubmitSettings = new System.Windows.Forms.Button();
+            this.btn_Restart = new System.Windows.Forms.Button();
             this.cms_notifyIcon.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -114,7 +121,7 @@ namespace wlt_helper_legacy
             // 
             // btn_TestURL
             // 
-            this.btn_TestURL.Location = new System.Drawing.Point(415, 269);
+            this.btn_TestURL.Location = new System.Drawing.Point(344, 273);
             this.btn_TestURL.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btn_TestURL.Name = "btn_TestURL";
             this.btn_TestURL.Size = new System.Drawing.Size(89, 29);
@@ -126,20 +133,22 @@ namespace wlt_helper_legacy
             // lbl_SSID
             // 
             this.lbl_SSID.AutoSize = true;
-            this.lbl_SSID.Location = new System.Drawing.Point(234, 293);
+            this.lbl_SSID.Location = new System.Drawing.Point(165, 286);
             this.lbl_SSID.Name = "lbl_SSID";
             this.lbl_SSID.Size = new System.Drawing.Size(55, 15);
             this.lbl_SSID.TabIndex = 7;
             this.lbl_SSID.Text = "label1";
+            this.lbl_SSID.Click += new System.EventHandler(this.lbl_SSID_Click);
             // 
             // txt_SSID
             // 
-            this.txt_SSID.Location = new System.Drawing.Point(234, 318);
+            this.txt_SSID.Location = new System.Drawing.Point(165, 311);
             this.txt_SSID.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.txt_SSID.Name = "txt_SSID";
             this.txt_SSID.ReadOnly = true;
             this.txt_SSID.Size = new System.Drawing.Size(149, 25);
             this.txt_SSID.TabIndex = 8;
+            this.txt_SSID.TextChanged += new System.EventHandler(this.txt_SSID_TextChanged);
             // 
             // lbl_Title
             // 
@@ -164,7 +173,7 @@ namespace wlt_helper_legacy
             // ckb_LaunchOnBoot
             // 
             this.ckb_LaunchOnBoot.AutoSize = true;
-            this.ckb_LaunchOnBoot.Location = new System.Drawing.Point(581, 276);
+            this.ckb_LaunchOnBoot.Location = new System.Drawing.Point(458, 279);
             this.ckb_LaunchOnBoot.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.ckb_LaunchOnBoot.Name = "ckb_LaunchOnBoot";
             this.ckb_LaunchOnBoot.Size = new System.Drawing.Size(101, 19);
@@ -175,8 +184,8 @@ namespace wlt_helper_legacy
             // 
             // btn_Login
             // 
-            this.btn_Login.Location = new System.Drawing.Point(415, 318);
-            this.btn_Login.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
+            this.btn_Login.Location = new System.Drawing.Point(344, 326);
+            this.btn_Login.Margin = new System.Windows.Forms.Padding(1);
             this.btn_Login.Name = "btn_Login";
             this.btn_Login.Size = new System.Drawing.Size(89, 29);
             this.btn_Login.TabIndex = 12;
@@ -190,29 +199,6 @@ namespace wlt_helper_legacy
             this.notifyIcon.Text = "notifyIcon1";
             this.notifyIcon.Visible = true;
             this.notifyIcon.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseDoubleClick);
-            // 
-            // btn_ExitApp
-            // 
-            this.btn_ExitApp.Location = new System.Drawing.Point(801, 25);
-            this.btn_ExitApp.Margin = new System.Windows.Forms.Padding(1, 1, 1, 1);
-            this.btn_ExitApp.Name = "btn_ExitApp";
-            this.btn_ExitApp.Size = new System.Drawing.Size(89, 29);
-            this.btn_ExitApp.TabIndex = 13;
-            this.btn_ExitApp.Text = "button1";
-            this.btn_ExitApp.UseVisualStyleBackColor = true;
-            this.btn_ExitApp.Click += new System.EventHandler(this.btn_ExitApp_Click);
-            // 
-            // ckb_HideOnLaunch
-            // 
-            this.ckb_HideOnLaunch.AutoSize = true;
-            this.ckb_HideOnLaunch.Location = new System.Drawing.Point(581, 324);
-            this.ckb_HideOnLaunch.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.ckb_HideOnLaunch.Name = "ckb_HideOnLaunch";
-            this.ckb_HideOnLaunch.Size = new System.Drawing.Size(101, 19);
-            this.ckb_HideOnLaunch.TabIndex = 14;
-            this.ckb_HideOnLaunch.Text = "checkBox1";
-            this.ckb_HideOnLaunch.UseVisualStyleBackColor = true;
-            this.ckb_HideOnLaunch.CheckedChanged += new System.EventHandler(this.ckb_HideOnLaunch_CheckedChanged);
             // 
             // cms_notifyIcon
             // 
@@ -229,21 +215,116 @@ namespace wlt_helper_legacy
             this.tsmi_Exit.Text = "toolStripMenuItem1";
             this.tsmi_Exit.Click += new System.EventHandler(this.tsmi_Exit_Click);
             // 
+            // btn_ExitApp
+            // 
+            this.btn_ExitApp.Location = new System.Drawing.Point(801, 25);
+            this.btn_ExitApp.Margin = new System.Windows.Forms.Padding(1);
+            this.btn_ExitApp.Name = "btn_ExitApp";
+            this.btn_ExitApp.Size = new System.Drawing.Size(89, 29);
+            this.btn_ExitApp.TabIndex = 13;
+            this.btn_ExitApp.Text = "button1";
+            this.btn_ExitApp.UseVisualStyleBackColor = true;
+            this.btn_ExitApp.Click += new System.EventHandler(this.btn_ExitApp_Click);
+            // 
+            // ckb_HideOnLaunch
+            // 
+            this.ckb_HideOnLaunch.AutoSize = true;
+            this.ckb_HideOnLaunch.Location = new System.Drawing.Point(458, 306);
+            this.ckb_HideOnLaunch.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.ckb_HideOnLaunch.Name = "ckb_HideOnLaunch";
+            this.ckb_HideOnLaunch.Size = new System.Drawing.Size(101, 19);
+            this.ckb_HideOnLaunch.TabIndex = 14;
+            this.ckb_HideOnLaunch.Text = "checkBox1";
+            this.ckb_HideOnLaunch.UseVisualStyleBackColor = true;
+            this.ckb_HideOnLaunch.CheckedChanged += new System.EventHandler(this.ckb_HideOnLaunch_CheckedChanged);
+            // 
             // btn_Uninstall
             // 
             this.btn_Uninstall.Location = new System.Drawing.Point(801, 75);
             this.btn_Uninstall.Name = "btn_Uninstall";
-            this.btn_Uninstall.Size = new System.Drawing.Size(88, 29);
+            this.btn_Uninstall.Size = new System.Drawing.Size(89, 29);
             this.btn_Uninstall.TabIndex = 16;
             this.btn_Uninstall.Text = "button1";
             this.btn_Uninstall.UseVisualStyleBackColor = true;
             this.btn_Uninstall.Click += new System.EventHandler(this.btn_Uninstall_Click);
+            // 
+            // txt_InitialCheckMaxCnt
+            // 
+            this.txt_InitialCheckMaxCnt.Location = new System.Drawing.Point(648, 274);
+            this.txt_InitialCheckMaxCnt.Name = "txt_InitialCheckMaxCnt";
+            this.txt_InitialCheckMaxCnt.Size = new System.Drawing.Size(100, 25);
+            this.txt_InitialCheckMaxCnt.TabIndex = 17;
+            this.txt_InitialCheckMaxCnt.TextChanged += new System.EventHandler(this.txt_InitialCheckMaxCnt_TextChanged);
+            // 
+            // txt_CheckInterval
+            // 
+            this.txt_CheckInterval.Location = new System.Drawing.Point(648, 329);
+            this.txt_CheckInterval.Name = "txt_CheckInterval";
+            this.txt_CheckInterval.Size = new System.Drawing.Size(100, 25);
+            this.txt_CheckInterval.TabIndex = 18;
+            this.txt_CheckInterval.TextChanged += new System.EventHandler(this.txt_CheckInterval_TextChanged);
+            // 
+            // lbl_InitialCheckMaxCnt
+            // 
+            this.lbl_InitialCheckMaxCnt.AutoSize = true;
+            this.lbl_InitialCheckMaxCnt.Location = new System.Drawing.Point(645, 256);
+            this.lbl_InitialCheckMaxCnt.Name = "lbl_InitialCheckMaxCnt";
+            this.lbl_InitialCheckMaxCnt.Size = new System.Drawing.Size(55, 15);
+            this.lbl_InitialCheckMaxCnt.TabIndex = 19;
+            this.lbl_InitialCheckMaxCnt.Text = "label1";
+            // 
+            // lbl_CheckInterval
+            // 
+            this.lbl_CheckInterval.AutoSize = true;
+            this.lbl_CheckInterval.Location = new System.Drawing.Point(645, 311);
+            this.lbl_CheckInterval.Name = "lbl_CheckInterval";
+            this.lbl_CheckInterval.Size = new System.Drawing.Size(55, 15);
+            this.lbl_CheckInterval.TabIndex = 20;
+            this.lbl_CheckInterval.Text = "label2";
+            // 
+            // ckb_RepeatedCheck
+            // 
+            this.ckb_RepeatedCheck.AutoSize = true;
+            this.ckb_RepeatedCheck.Location = new System.Drawing.Point(458, 331);
+            this.ckb_RepeatedCheck.Name = "ckb_RepeatedCheck";
+            this.ckb_RepeatedCheck.Size = new System.Drawing.Size(101, 19);
+            this.ckb_RepeatedCheck.TabIndex = 21;
+            this.ckb_RepeatedCheck.Text = "checkBox1";
+            this.ckb_RepeatedCheck.UseVisualStyleBackColor = true;
+            this.ckb_RepeatedCheck.CheckedChanged += new System.EventHandler(this.ckb_RepeatedCheck_CheckedChanged);
+            // 
+            // btn_SubmitSettings
+            // 
+            this.btn_SubmitSettings.Location = new System.Drawing.Point(764, 326);
+            this.btn_SubmitSettings.Name = "btn_SubmitSettings";
+            this.btn_SubmitSettings.Size = new System.Drawing.Size(89, 29);
+            this.btn_SubmitSettings.TabIndex = 22;
+            this.btn_SubmitSettings.Text = "button1";
+            this.btn_SubmitSettings.UseVisualStyleBackColor = true;
+            this.btn_SubmitSettings.Click += new System.EventHandler(this.btn_SubmitSettings_Click);
+            // 
+            // btn_Restart
+            // 
+            this.btn_Restart.Location = new System.Drawing.Point(801, 125);
+            this.btn_Restart.Name = "btn_Restart";
+            this.btn_Restart.Size = new System.Drawing.Size(89, 29);
+            this.btn_Restart.TabIndex = 23;
+            this.btn_Restart.Text = "button1";
+            this.btn_Restart.UseVisualStyleBackColor = true;
+            this.btn_Restart.Click += new System.EventHandler(this.btn_Restart_Click);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(913, 503);
+            this.Controls.Add(this.btn_Restart);
+            this.Controls.Add(this.btn_SubmitSettings);
+            this.Controls.Add(this.ckb_RepeatedCheck);
+            this.Controls.Add(this.lbl_CheckInterval);
+            this.Controls.Add(this.lbl_InitialCheckMaxCnt);
+            this.Controls.Add(this.txt_CheckInterval);
+            this.Controls.Add(this.txt_InitialCheckMaxCnt);
             this.Controls.Add(this.btn_Uninstall);
             this.Controls.Add(this.ckb_HideOnLaunch);
             this.Controls.Add(this.btn_ExitApp);
@@ -293,6 +374,13 @@ namespace wlt_helper_legacy
         private ContextMenuStrip cms_notifyIcon;
         private ToolStripMenuItem tsmi_Exit;
         private Button btn_Uninstall;
+        private TextBox txt_InitialCheckMaxCnt;
+        private TextBox txt_CheckInterval;
+        private Label lbl_InitialCheckMaxCnt;
+        private Label lbl_CheckInterval;
+        private CheckBox ckb_RepeatedCheck;
+        private Button btn_SubmitSettings;
+        private Button btn_Restart;
     }
 }
 

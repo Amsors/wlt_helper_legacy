@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
-using System.Text.Json;
 using System.Windows.Forms;
 using wlt_helper.Services;
 using wlt_helper.Utilities;
@@ -15,47 +15,28 @@ namespace wlt_helper_legacy
         public MainForm()
         {
             InitializeComponent();
-            ConfigInitialize();
+            InitializeConfig();
             MainFormInitialize();
             NotifyIconInitialize(); 
-            LaunchCronJobs();
             TbxLogger.Initialize(this.txt_StatusBox);
+            LaunchCronJobs();
         }
 
-        private void ConfigInitialize()
+        private void InitializeConfig()
         {
-            if (wlt_helper.Services.AppSettings.ExistConfigFile() == false)
-            {
-                wlt_helper.Services.UserConfig.LaunchOnBoot = false;
-                wlt_helper.Services.UserConfig.HideOnLaunch = false;
-
-                wlt_helper.Services.AppSettings.SetConfigFile();
-            }
-            else
-            {
-                string conf = wlt_helper.Services.AppSettings.ReadConfigFile();
-                using (JsonDocument document = JsonDocument.Parse(conf))
-                {
-                    JsonElement root = document.RootElement;
-
-                    bool launchOnBoot = root.GetProperty("_launchOnBoot").GetBoolean();
-                    bool hideOnLaunch = root.GetProperty("_hideOnLaunch").GetBoolean();
-
-                    wlt_helper.Services.UserConfig.LaunchOnBoot = launchOnBoot;
-                    wlt_helper.Services.UserConfig.HideOnLaunch = hideOnLaunch;
-
-                    ckb_LaunchOnBoot.Checked = launchOnBoot;
-                    wlt_helper.Services.AppSettings.SetAutoStart();
-
-                    ckb_HideOnLaunch.Checked = hideOnLaunch;
-                }
-            }
+            DataStorage.InitializeConfigFile();
+            ckb_LaunchOnBoot.Checked = UserConfig.LaunchOnBoot;
+            ckb_HideOnLaunch.Checked = UserConfig.HideOnLaunch;
+            ckb_RepeatedCheck.Checked = UserConfig.RepeatedCheck;
+            txt_CheckInterval.Text = UserConfig.CheckInterval.ToString();
+            txt_InitialCheckMaxCnt.Text = UserConfig.InitialCheckMaxCnt.ToString();
+            AppSettings.SetAutoStart();
         }
 
         private void MainFormInitialize()
         {
-            byte[] iconBytes = wlt_helper.Services.AppSettings.GetIconBytes();
-            Icon myIcon = wlt_helper.Services.AppSettings.BytesToIcon(iconBytes);
+            byte[] iconBytes = AppSettings.GetIconBytes();
+            Icon myIcon = AppSettings.BytesToIcon(iconBytes);
             this.Icon = myIcon;
             this.Text = "wlt_helper";
             btn_Submit.Text = "确认";
@@ -71,8 +52,13 @@ namespace wlt_helper_legacy
             btn_ExitApp.Text = "退出程序";
             ckb_HideOnLaunch.Text = "启动自动托盘";
             txt_SSID.Text = "N/A"; //TODO 待删除
-            tsmi_Exit.Text = "退出工具";
-            btn_Uninstall.Text = "卸载工具";
+            tsmi_Exit.Text = "退出软件";
+            btn_Uninstall.Text = "卸载软件";
+            lbl_CheckInterval.Text = "检查间隔";
+            lbl_InitialCheckMaxCnt.Text = "最大检查次数";
+            ckb_RepeatedCheck.Text = "重复检查网络连通性";
+            btn_SubmitSettings.Text = "保存设置";
+            btn_Restart.Text = "重启软件";
 
             this.FormClosing += MainForm_FormClosing;
             this.Load += MainForm_Load;
@@ -80,8 +66,8 @@ namespace wlt_helper_legacy
 
         private void NotifyIconInitialize()
         {
-            byte[] iconBytes = wlt_helper.Services.AppSettings.GetIconBytes();
-            Icon myIcon = wlt_helper.Services.AppSettings.BytesToIcon(iconBytes);
+            byte[] iconBytes = AppSettings.GetIconBytes();
+            Icon myIcon = AppSettings.BytesToIcon(iconBytes);
             this.notifyIcon.Icon = myIcon;
             notifyIcon.Text = "wlt_helper";
             notifyIcon.Visible = true;
@@ -89,21 +75,24 @@ namespace wlt_helper_legacy
 
         private void LaunchCronJobs()
         {
-            wlt_helper.Services.CronJob job1 = new wlt_helper.Services.CronJob();
-            wlt_helper.Services.TimerTask Task1 = new wlt_helper.Services.TimerTask(job1.ConnectToWlt, wlt_helper.Services.AppConfig.time_ScanNetworkAvaidability);
+            //CronJob job1 = new CronJob();
+            //TimerTask Task1 = new TimerTask(job1.ConnectToWlt, UserConfig.CheckInterval);
+
+            var timerManager2 = new TimerTaskManager(UserConfig.CheckInterval);
+            timerManager2.AddTask(CronJob.ConnectToWlt);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
             TbxLogger.LogWrite("应用启动");
-            if (wlt_helper.Services.UserConfig.HideOnLaunch)
+            if (UserConfig.HideOnLaunch)
             {
                 TbxLogger.LogWrite("窗口隐藏");
                 this.WindowState = FormWindowState.Minimized;
                 this.ShowInTaskbar = false;
                 this.isMainFormVisible = false;
             }
-            string user_pwd = wlt_helper.Services.DataStorage.LoadSavedCredentials();
+            string user_pwd = DataStorage.LoadSavedCredentials();
             if (user_pwd != null)
             {
                 string[] parts = user_pwd.Split('|');
@@ -158,7 +147,7 @@ namespace wlt_helper_legacy
             else
             {
                 TbxLogger.LogWrite("用户名和密码输入成功");
-                bool success = wlt_helper.Services.DataStorage.SaveCredentials(userInput, pwdInput);
+                bool success = DataStorage.SaveCredentials(userInput, pwdInput);
                 if (success)
                 {
                     TbxLogger.LogWrite("用户名和密码保存成功");
@@ -190,9 +179,9 @@ namespace wlt_helper_legacy
 
         private async void btn_TestURL_Click(object sender, EventArgs e)
         {
-            using (var webFunction = new wlt_helper.Services.WltWebFunction())
+            using (var webFunction = new WltWebFunction())
             {
-                string testUrl = wlt_helper.Services.AppConfig.url_DefaultConnectTest;
+                string testUrl = AppConfig.url_DefaultConnectTest;
                 bool isAccessible = await webFunction.TestWebsiteAccessAsync(testUrl);
                 string content = $"网站 {testUrl} {(isAccessible ? "可访问" : "不可访问")}";
                 TbxLogger.LogWrite(content);
@@ -201,7 +190,7 @@ namespace wlt_helper_legacy
 
         private async void btn_Login_Click(object sender, EventArgs e)
         {
-            using (var webFunction = new wlt_helper.Services.WltWebFunction())
+            using (var webFunction = new WltWebFunction())
             {
                 await webFunction.LoginToWlt();
             }
@@ -209,8 +198,8 @@ namespace wlt_helper_legacy
 
         private void ckb_LaunchOnBoot_CheckedChanged(object sender, EventArgs e)
         {
-            wlt_helper.Services.UserConfig.LaunchOnBoot = ckb_LaunchOnBoot.Checked;
-            wlt_helper.Services.AppSettings.SetAutoStart();
+            UserConfig.LaunchOnBoot = ckb_LaunchOnBoot.Checked;
+            AppSettings.SetAutoStart();
         }
 
         private void btn_ExitApp_Click(object sender, EventArgs e)
@@ -223,11 +212,11 @@ namespace wlt_helper_legacy
             TbxLogger.LogWrite($"设定启动后自动隐藏到托盘为{ckb_HideOnLaunch.Checked}");
             if (ckb_HideOnLaunch.Checked)
             {
-                wlt_helper.Services.UserConfig.HideOnLaunch = true;
+                UserConfig.HideOnLaunch = true;
             }
             else
             {
-                wlt_helper.Services.UserConfig.HideOnLaunch = false;
+                UserConfig.HideOnLaunch = false;
             }
         }
 
@@ -243,7 +232,9 @@ namespace wlt_helper_legacy
                 $"{Environment.NewLine}" +
                 $"程序本体 {AppConfig.path_Exe}{Environment.NewLine}" +
                 $"程序配置文件 {AppConfig.path_Config}{Environment.NewLine}" +
-                $"本地保存的登录凭据 {AppConfig.path_Credential}{Environment.NewLine}",
+                $"本地保存的登录凭据 {AppConfig.path_Credential}{Environment.NewLine}" +
+                $"{Environment.NewLine}" +
+                $"窗口关闭后请耐心等待应用删除",
                 "卸载确认",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question
@@ -266,6 +257,85 @@ namespace wlt_helper_legacy
             this.cms_notifyIcon.Dispose();
             TbxLogger.Shutdown();
             Application.Exit();
+        }
+
+        private void txt_SSID_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lbl_SSID_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txt_InitialCheckMaxCnt_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txt_CheckInterval_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ckb_RepeatedCheck_CheckedChanged(object sender, EventArgs e)
+        {
+            TbxLogger.LogWrite($"设定重复检查为{ckb_RepeatedCheck.Checked}");
+            if (ckb_RepeatedCheck.Checked)
+            {
+                UserConfig.RepeatedCheck = true;
+            }
+            else
+            {
+                UserConfig.RepeatedCheck = false;
+            }
+        }
+
+        private void btn_SubmitSettings_Click(object sender, EventArgs e)
+        {
+            if (!uint.TryParse(txt_InitialCheckMaxCnt.Text, out uint number1) ||
+                !uint.TryParse(txt_CheckInterval.Text, out uint number2) ||
+                number1 == 0 || number2 == 0)
+            {
+                TbxLogger.LogWrite($"提交设置更改 输入不合法");
+                MessageBox.Show("设置输入不合法");
+            }
+            else
+            {
+                if (number2 < 3000)
+                {
+                    TbxLogger.LogWrite($"提交设置更改 输入不合理");
+                    MessageBox.Show("检查间隔设置不合理" +
+                        Environment.NewLine +
+                        "应不小于3000ms");
+                }
+                else
+                {
+                    TbxLogger.LogWrite($"提交设置更改 成功");
+                    MessageBox.Show($"更改成功" +
+                        $"{Environment.NewLine}重启软件后生效");
+                    UserConfig.InitialCheckMaxCnt = number1;
+                    UserConfig.CheckInterval = number2;
+                }
+            }
+        }
+
+        private void btn_Restart_Click(object sender, EventArgs e)
+        {
+            Process restartProcess = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c timeout /t {AppConfig.time_Restart} && start \"\" \"{AppConfig.path_Exe}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            restartProcess.Start();
+
+            ExitApp();
         }
     }
 }

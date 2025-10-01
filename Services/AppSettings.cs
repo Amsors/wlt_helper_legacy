@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Text.Json;
 using IWshRuntimeLibrary;
 using wlt_helper.Utilities;
@@ -156,7 +155,7 @@ namespace wlt_helper.Services
                 {
                     System.IO.File.Delete(AppConfig.path_Credential);
                 }
-                ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", $"/c timeout /t 5 && del \"{AppConfig.path_Exe}\"");
+                ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", $"/c timeout /t {AppConfig.time_Uninstall} && del \"{AppConfig.path_Exe}\"");
 
                 psi.WindowStyle = ProcessWindowStyle.Hidden;
                 psi.CreateNoWindow = true;
@@ -182,7 +181,8 @@ namespace wlt_helper.Services
         public static readonly string url_WltLogin = @"http://wlt.ustc.edu.cn/cgi-bin/ip";
         public static readonly string url_WltHost = @"wlt.ustc.edu.cn";
         public static readonly string SSID_Target = "ustcnet";
-        public static readonly int time_ScanNetworkAvaidability = 3000;
+        public static readonly int time_Restart = 3;
+        public static readonly int time_Uninstall = 10;
     }
 
     internal static class UserConfig
@@ -200,6 +200,7 @@ namespace wlt_helper.Services
                 AppSettings.SetConfigFile();
             }
         }
+
         private static bool _launchOnBoot = false;
         public static bool LaunchOnBoot
         {
@@ -214,12 +215,58 @@ namespace wlt_helper.Services
                 AppSettings.SetConfigFile();
             }
         }
+
+        private static bool _repeatedCheck = false;
+        public static bool RepeatedCheck
+        {
+            get
+            {
+                return _repeatedCheck;
+            }
+            set
+            {
+                _repeatedCheck = value;
+                AppSettings.SetConfigFile();
+            }
+        }
+
+        private static uint _initialCheckMaxCnt = 10;
+        public static uint InitialCheckMaxCnt
+        {
+            get
+            {
+                return _initialCheckMaxCnt;
+            }
+            set
+            {
+                _initialCheckMaxCnt = value;
+                AppSettings.SetConfigFile();
+            }
+        }
+
+        private static uint _checkInterval = 3000;
+        public static uint CheckInterval
+        {
+            get
+            {
+                return _checkInterval;
+            }
+            set
+            {
+                _checkInterval = value;
+                AppSettings.SetConfigFile();
+            }
+        }
+
         public static string ToJsonString()
         {
             var data = new
             {
-                _hideOnLaunch,
-                _launchOnBoot
+                HideOnLaunch,
+                LaunchOnBoot,
+                RepeatedCheck,
+                InitialCheckMaxCnt,
+                CheckInterval
             };
             try
             {

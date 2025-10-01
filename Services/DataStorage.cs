@@ -1,12 +1,13 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using wlt_helper.Utilities;
+using wlt_helper.Services;
 
 namespace wlt_helper.Services
 {
-    internal class DataStorage
+    internal static class DataStorage
     {
         private static readonly byte[] s_additionalEntropy = Encoding.UTF8.GetBytes("wlt_helper_legacy_amsors_CC9F8F27-3A8A-4643-8831-861B72C7771A");
         public static bool SaveCredentials(string username, string password)
@@ -73,6 +74,47 @@ namespace wlt_helper.Services
                 }
             }
             return ("NA", "NA");
+        }
+
+        public static void InitializeConfigFile()
+        {
+            if (AppSettings.ExistConfigFile() == false)
+            {
+                AppSettings.SetConfigFile();
+            }
+            else
+            {
+                string conf = AppSettings.ReadConfigFile();
+                using (JsonDocument document = JsonDocument.Parse(conf))
+                {
+                    bool launchOnBoot;
+                    bool hideOnLaunch;
+                    bool repeatedCheck;
+                    uint initialCheckCnt;
+                    uint checkInterval;
+
+                    try
+                    {
+                        JsonElement root = document.RootElement;
+
+                        launchOnBoot = root.GetProperty("LaunchOnBoot").GetBoolean();
+                        hideOnLaunch = root.GetProperty("HideOnLaunch").GetBoolean();
+                        repeatedCheck = root.GetProperty("RepeatedCheck").GetBoolean();
+                        initialCheckCnt = root.GetProperty("InitialCheckMaxCnt").GetUInt32();
+                        checkInterval = root.GetProperty("CheckInterval").GetUInt32();
+
+                        UserConfig.LaunchOnBoot = launchOnBoot;
+                        UserConfig.HideOnLaunch = hideOnLaunch;
+                        UserConfig.RepeatedCheck = repeatedCheck;
+                        UserConfig.InitialCheckMaxCnt = initialCheckCnt;
+                        UserConfig.CheckInterval = checkInterval;
+                    }
+                    catch (Exception ex)
+                    {
+                        TbxLogger.LogWrite($"从配置文件中初始化失败 {ex.Message}");
+                    }
+                }
+            }
         }
     }
 }
