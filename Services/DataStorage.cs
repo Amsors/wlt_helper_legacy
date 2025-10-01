@@ -18,7 +18,7 @@ namespace wlt_helper.Services
                 byte[] plaintextBytes = Encoding.UTF8.GetBytes(credentials);
                 byte[] encryptedData = ProtectedData.Protect(plaintextBytes, s_additionalEntropy, DataProtectionScope.CurrentUser);
 
-                string filePath = "credential";
+                string filePath = AppConfig.path_Credential;
                 System.IO.File.WriteAllBytes(filePath, encryptedData);
 
                 TbxLogger.LogWrite($"保存凭据成功");
@@ -32,7 +32,7 @@ namespace wlt_helper.Services
         }
         public static string LoadSavedCredentials()
         {
-            string filePath = "credential";
+            string filePath = AppConfig.path_Credential;
             if (!System.IO.File.Exists(filePath))
             {
                 TbxLogger.LogWrite($"加载credential时出错 文件不存在");

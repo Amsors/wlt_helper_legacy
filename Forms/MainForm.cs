@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.Text.Json;
 using System.Windows.Forms;
-using Microsoft.Extensions.Logging;
+using wlt_helper.Services;
 using wlt_helper.Utilities;
 
 namespace wlt_helper_legacy
@@ -72,6 +71,8 @@ namespace wlt_helper_legacy
             btn_ExitApp.Text = "退出程序";
             ckb_HideOnLaunch.Text = "启动自动托盘";
             txt_SSID.Text = "N/A"; //TODO 待删除
+            tsmi_Exit.Text = "退出工具";
+            btn_Uninstall.Text = "卸载工具";
 
             this.FormClosing += MainForm_FormClosing;
             this.Load += MainForm_Load;
@@ -214,9 +215,7 @@ namespace wlt_helper_legacy
 
         private void btn_ExitApp_Click(object sender, EventArgs e)
         {
-            this.notifyIcon.Dispose();
-            TbxLogger.Shutdown();
-            Application.Exit();
+            ExitApp();
         }
 
         private void ckb_HideOnLaunch_CheckedChanged(object sender, EventArgs e)
@@ -230,6 +229,43 @@ namespace wlt_helper_legacy
             {
                 wlt_helper.Services.UserConfig.HideOnLaunch = false;
             }
+        }
+
+        private void tsmi_Exit_Click(object sender, EventArgs e)
+        {
+            ExitApp();
+        }
+
+        private void btn_Uninstall_Click(object sender, EventArgs e)
+        {
+            DialogResult result = MessageBox.Show(
+                $"确定要卸载此工具吗？{Environment.NewLine}此操作将会删除以下三个文件：{Environment.NewLine}" +
+                $"{Environment.NewLine}" +
+                $"程序本体 {AppConfig.path_Exe}{Environment.NewLine}" +
+                $"程序配置文件 {AppConfig.path_Config}{Environment.NewLine}" +
+                $"本地保存的登录凭据 {AppConfig.path_Credential}{Environment.NewLine}",
+                "卸载确认",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+            if (result == DialogResult.Yes)
+            {
+                TbxLogger.LogWrite("确认卸载应用");
+                AppSettings.UninstallApp();
+                ExitApp();
+            }
+            else
+            {
+                TbxLogger.LogWrite("取消卸载应用");
+            }
+        }
+
+        private void ExitApp()
+        {
+            this.notifyIcon.Dispose();
+            this.cms_notifyIcon.Dispose();
+            TbxLogger.Shutdown();
+            Application.Exit();
         }
     }
 }

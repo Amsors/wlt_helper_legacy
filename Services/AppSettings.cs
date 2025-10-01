@@ -143,11 +143,38 @@ namespace wlt_helper.Services
             }
             return string.Empty;
         }
+
+        public static void UninstallApp()
+        {
+            try
+            {
+                if (System.IO.File.Exists(AppConfig.path_Config))
+                {
+                    System.IO.File.Delete(AppConfig.path_Config);
+                }
+                if (System.IO.File.Exists(AppConfig.path_Credential))
+                {
+                    System.IO.File.Delete(AppConfig.path_Credential);
+                }
+                ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", $"/c timeout /t 5 && del \"{AppConfig.path_Exe}\"");
+
+                psi.WindowStyle = ProcessWindowStyle.Hidden;
+                psi.CreateNoWindow = true;
+
+                Process.Start(psi);
+            }
+            catch(Exception ex)
+            {
+                TbxLogger.LogWrite($"卸载失败 {ex.Message}");
+            }
+        }
     }
 
     public static class AppConfig
     {
-        public static readonly string path_Config = @"wlt_helper_config.json";
+        public static readonly string path_Config = @"wlt_helper_legacy_config.json";
+        public static readonly string path_Credential = @"wlt_helper_legacy_credential";
+        public static readonly string path_Exe = @"wlt_helper_legacy.exe";
         public static readonly string url_DefaultConnectTest = @"http://cn.bing.com";
         public static readonly string url_MSConnectTest = @"http://www.msftconnecttest.com/connecttest.txt";
         public static readonly string url_BaiduConnectTest = @"http://baidu.com";
